@@ -1,0 +1,21 @@
+body {
+  background: #fff;
+  font: 12px sans-serif;
+}
+svg,
+canvas {
+  position: absolute;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #d0d0d0;
+}
+.x.axis .tick text {
+  font: 10px sans-serif;
+  fill: #555;
+}
+
+.guide {
+  stroke: #555;
+}
