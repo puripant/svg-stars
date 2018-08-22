@@ -62,6 +62,9 @@ d3.csv("data.csv", function(error, data) {
       .data(stars)
     .enter().append("polygon")
       .attr("points", drawStar)
-      .attr("fill", "red");
+      .attr("fill", "gold")
+      .attr("stroke", "gold")
+      .attr("stroke-width", 10)
+      .attr("stroke-linejoin", "round");
 
 });
