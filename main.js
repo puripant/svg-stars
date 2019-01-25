@@ -1,20 +1,32 @@
 const indexNum = 5;
 
-const margin = {top: 35, right: 70, bottom: 30, left: 70};
-const width = 600;
-const height = 400;
+const margin = {top: 50, right: 50, bottom: 50, left: 50};
+const width = 2000 - margin.left - margin.right;
+const height = 70 - margin.top - margin.bottom;
 
 const svg = d3.select("svg")
-  .style("width", width + "px")
-  .style("height", height + "px");
+    .style("width", width + margin.left + margin.right)
+    .style("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-// const color = d3.scaleOrdinal()
-//   .range(["#DB7F85", "#50AB84", "#4C6C86", "#C47DCB", "#B59248", "#DD6CA7", "#E15E5A", "#5DA5B3", "#725D82", "#54AF52", "#954D56"]);
+const data_filename = "wdvp-indices.csv";
+const idIndexName = "name"
+const heightIndexName = "population";
+const indexNames = ["gini-inversed", "happyplanet", "hdi", "worldhappiness", "sustainable"];
 
+let xScale = d3.scaleLinear()
+  .range([0, width]);
+let yScale = d3.scaleLinear()
+  .range([0, height]);
+let colorScale = d3.scaleLinear()
+  .domain([0, 1])
+  .range(["gold", "red"]);
+starSize = { min: 5, max: 10 };
 let scales = [];
 for (let i = 0; i < indexNum; i++) {
   scales.push(d3.scaleLinear()
-    .range([10, 20]));
+    .range([starSize.min, starSize.max]));
 }
 
 const piOverFive = Math.PI / 5;
@@ -26,45 +38,45 @@ const rotateScaleVector = function(vector, angle, scale) {
 };
 const drawStar = function(d, i) {
   let str = "";
-  for (let j = 0; j < d.length; j++) {
-    str += (d[j].x + ((i%5 + 1)*100)) + "," + (d[j].y + (100*(Math.floor(i/5) + 1))) + " ";
+  for (let j = 0; j < d.points.length; j++) {
+    str += (+d.points[j].x + xScale(i)) + "," + (+d.points[j].y + d.height) + " ";
   }
   return str;
 };
 
-d3.csv("data.csv", function(error, data) {
-  //dummy data
-  data = [];
-  for (let i = 0; i < 15; i++) {
-    data[i] = {
-      region: i,
-      index0: Math.random(),
-      index1: Math.random(),
-      index2: Math.random(),
-      index3: Math.random(),
-      index4: Math.random()
-    };
+d3.csv(data_filename, function(error, data) {
+  xScale.domain([0, data.length-1]);
+  yScale.domain([0, 1]); // ([0, d3.max(data, function(d) { return +d[heightIndexName]; })]);
+  for (let i = 0; i < indexNum; i++) {
+    scales[i].domain(d3.extent(data, function(d) { return +d[indexNames[i]]; }));
   }
 
   let stars = [];
-  for (let i = 0; i < indexNum; i++) {
-    scales[i].domain(d3.extent(data, function(d) { return +d["index" + i]; }));
-  }
   for (let r = 0; r < data.length; r++) {
-    stars[r] = [];
+    stars.push({
+      id: data[r][idIndexName],
+      height: yScale(+data[r][heightIndexName] > 5000000),
+      color: colorScale(+data[r][heightIndexName] > 5000000),
+      points: []
+    });
     for (let i = 0; i < indexNum; i++) {
-      stars[r].push(rotateScaleVector({ x: 0, y: -1 },  2*i   *piOverFive, scales[i](+data[r]["index" + i])));
-      stars[r].push(rotateScaleVector({ x: 0, y: -1 }, (2*i+1)*piOverFive, 10));
+      stars[r].points.push(rotateScaleVector({ x: 0, y: -1 },  2*i   *piOverFive, scales[i](+data[r][indexNames[i]])));
+      // stars[r].points.push(rotateScaleVector({ x: 0, y: -1 }, 2*i * piOverFive, starSize.max));
+      stars[r].points.push(rotateScaleVector({ x: 0, y: -1 }, (2*i+1)*piOverFive, starSize.min));
     }
   }
 
   svg.selectAll("g")
-      .data(stars)
+      .data(stars) //.data(stars.sort(function(a, b) { return d3.ascending(a.height, b.height); }))
     .enter().append("polygon")
+      .attr("id", d => d.id)
       .attr("points", drawStar)
-      .attr("fill", "gold")
-      .attr("stroke", "gold")
-      .attr("stroke-width", 10)
-      .attr("stroke-linejoin", "round");
+      .attr("fill", d => d.color)
+      .attr("stroke", d => d.color)
+      .attr("stroke-width", 1)
+      .attr("stroke-linejoin", "round")
+      .on("mouseover", function(d) {
+        console.log(d.id);
+      });
 
 });
